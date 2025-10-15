@@ -1,4 +1,6 @@
 class LeituraSensor {
+  final int idMaquina;
+  final int idSensor;
   final double aceleracaoX;
   final double aceleracaoY;
   final double aceleracaoZ;
@@ -9,6 +11,8 @@ class LeituraSensor {
   final DateTime timestamp;
 
   LeituraSensor({
+    required this.idMaquina,
+    required this.idSensor,
     required this.aceleracaoX,
     required this.aceleracaoY,
     required this.aceleracaoZ,
@@ -21,6 +25,8 @@ class LeituraSensor {
 
   factory LeituraSensor.fromJson(Map<String, dynamic> json) {
     return LeituraSensor(
+      idMaquina: (json['id_maquina'] ?? 1).toInt(),
+      idSensor: (json['id_sensor'] ?? 1).toInt(),
       aceleracaoX: (json['aceleracao']?['x'] ?? 0).toDouble(),
       aceleracaoY: (json['aceleracao']?['y'] ?? 0).toDouble(),
       aceleracaoZ: (json['aceleracao']?['z'] ?? 0).toDouble(),
@@ -32,22 +38,9 @@ class LeituraSensor {
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'aceleracao_x': aceleracaoX,
-      'aceleracao_y': aceleracaoY,
-      'aceleracao_z': aceleracaoZ,
-      'giroscopio_x': giroscopioX,
-      'giroscopio_y': giroscopioY,
-      'giroscopio_z': giroscopioZ,
-      'vibracao': vibracao,
-      'timestamp': timestamp.toIso8601String(),
-    };
-  }
-
   @override
   String toString() {
-    return 'LeituraSensor(acel: [$aceleracaoX, $aceleracaoY, $aceleracaoZ], '
+    return 'LeituraSensor(maquina: $idMaquina, sensor: $idSensor, acel: [$aceleracaoX, $aceleracaoY, $aceleracaoZ], '
         'giro: [$giroscopioX, $giroscopioY, $giroscopioZ], '
         'vibração: $vibracao, timestamp: $timestamp)';
   }

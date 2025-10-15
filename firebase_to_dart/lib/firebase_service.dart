@@ -1,40 +1,55 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_to_dart/leitura_sensor.dart';
+import 'package:firebase_to_dart/alerta.dart';
+import 'package:firebase_to_dart/mysql_service.dart';
 
 class FirebaseService {
-  final String baseUrl = 'https://sensorvibracao-gp4-default-rtdb.firebaseio.com';
-  final String authToken;
+  final String databaseUrl =
+      'https://sensorvibracao-gp4-default-rtdb.firebaseio.com/';
+  final String? idToken;
 
-  FirebaseService(this.authToken);
+  FirebaseService(this.idToken);
 
-  Future<List<LeituraSensor>> lerLeituras() async {
-    final url = Uri.parse('$baseUrl/leituras.json?auth=$authToken');
+  Future<List<LeituraSensor>> processarLeituras(MySQLService mysqlService) async {
+    final url = Uri.parse('$databaseUrl/leituras.json?auth=$idToken');
+    final response = await http.get(url);
+    List<LeituraSensor> leituras = [];
 
-    try {
-      final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && response.body != 'null') {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        final List<LeituraSensor> leituras = [];
-
-        data.forEach((key, value) {
-          try {
-            leituras.add(LeituraSensor.fromJson(value));
-          } catch (e) {
-            print('⚠️ Erro ao converter leitura $key: $e');
-          }
-        });
-
-        print('✅ ${leituras.length} leituras carregadas do Firebase.');
+      if (data.isEmpty) {
+        print('⚠️ Nenhuma leitura encontrada.');
         return leituras;
-      } else {
-        print('❌ Erro ao buscar dados: ${response.statusCode}');
       }
-    } catch (e) {
-      print('❌ Erro na conexão com Firebase: $e');
+
+      for (var value in data.values) {
+        final leitura = LeituraSensor.fromJson(value);
+        final alerta = Alerta.fromLeitura(leitura);
+
+        // ✅ Envia leitura para MySQL
+        final idLeitura = await mysqlService.inserirLeitura(leitura);
+
+        // ✅ Se houver alerta, insere também
+        if (alerta.nivel != "Normal" && idLeitura != null) {
+          await mysqlService.inserirAlerta(alerta, idLeitura);
+        }
+
+        leituras.add(leitura);
+
+        if (alerta.nivel != "Normal") {
+          print('🚨 ALERTA (${alerta.nivel}) | ${alerta.mensagem}');
+          print('→ Vibração: ${leitura.vibracao}');
+          print('→ Timestamp: ${leitura.timestamp}');
+        } else {
+          print('✅ Leitura normal em ${leitura.timestamp}');
+        }
+      }
+    } else {
+      print('❌ Erro ao buscar dados: ${response.statusCode}');
     }
 
-    return [];
+    return leituras;
   }
 }
