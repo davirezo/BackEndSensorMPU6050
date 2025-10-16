@@ -82,11 +82,40 @@ class MySQLService {
   }
 
   // -------------------------------
+  // 🔎 Verifica se a leitura já existe
+  // -------------------------------
+  Future<bool> leituraExiste(int idSensor, DateTime timestamp) async {
+   try {
+      await _ensureConnection();
+      var result = await _connection.query(
+      '''
+        SELECT id FROM leituras
+        WHERE id_sensor = ? AND timestamp = ?
+        LIMIT 1
+      ''',
+        [idSensor, timestamp.toLocal().toString().substring(0, 19)],
+     );
+     return result.isNotEmpty;
+    } catch (e) {
+      print('❌ Erro ao verificar leitura existente: $e');
+      return false;
+    }
+  }
+
+
+  // -------------------------------
   // 📥 Insere leitura
   // -------------------------------
   Future<int?> inserirLeitura(LeituraSensor leitura) async {
     try {
       await _ensureConnection();
+
+    // ⚡️ Verifica se já existe
+    bool existe = await leituraExiste(leitura.idSensor, leitura.timestamp);
+    if (existe) {
+      print('⚠️ Leitura duplicada ignorada (sensor: ${leitura.idSensor}, ${leitura.timestamp})');
+      return null; // não insere novamente
+    }
 
       // 🔍 Garante que máquina e sensor existem
       await _verificarOuCriarMaquina(leitura.idMaquina);
