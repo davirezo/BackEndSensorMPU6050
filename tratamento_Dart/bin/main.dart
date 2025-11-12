@@ -1,13 +1,17 @@
-import 'package:firebase_to_dart/auth_service.dart';
-import 'package:firebase_to_dart/firebase_service.dart';
-import 'package:firebase_to_dart/leitura_sensor.dart';
-import 'package:firebase_to_dart/mysql_service.dart';
+import 'package:firebase_to_dart/services/auth_service.dart';
+import 'package:firebase_to_dart/services/firebase_service.dart';
+import 'package:firebase_to_dart/services/mysql_service.dart';
+import 'package:firebase_to_dart/models/leitura_sensor.dart';
+// ignore: unused_import
+import 'package:firebase_to_dart/models/alerta.dart';
 
 Future<void> main() async {
   final authService = AuthService();
-
   print('🔑 Autenticando anonimamente no Firebase...');
-  final token = await authService.autenticarAnonimamente();
+final token = await authService.autenticarComEmailSenha(
+  email: '######',
+  senha: '#######',
+);
 
   if (token == null) {
     print('❌ Falha na autenticação. Encerrando o programa.');
@@ -15,8 +19,8 @@ Future<void> main() async {
   }
 
   final firebaseService = FirebaseService(token);
-  final mysqlService = MySQLService();
 
+  final mysqlService = MySQLService();
   print('🔌 Conectando ao MySQL...');
   await mysqlService.conectar();
 

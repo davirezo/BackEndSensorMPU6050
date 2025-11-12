@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:firebase_to_dart/leitura_sensor.dart';
-import 'package:firebase_to_dart/alerta.dart';
-import 'package:firebase_to_dart/mysql_service.dart';
+import 'package:firebase_to_dart/models/leitura_sensor.dart';
+import 'package:firebase_to_dart/models/alerta.dart';
+import 'package:firebase_to_dart/services/mysql_service.dart';
+import 'package:firebase_to_dart/dao/leitura_dao.dart';
+import 'package:firebase_to_dart/dao/alerta_dao.dart';
 
 class FirebaseService {
   final String databaseUrl =
@@ -14,6 +16,9 @@ class FirebaseService {
   Future<List<LeituraSensor>> processarLeituras(MySQLService mysqlService) async {
     final url = Uri.parse('$databaseUrl/leituras.json?auth=$idToken');
     final response = await http.get(url);
+
+    final leituraDao = LeituraDAO(mysqlService);
+    final alertaDao = AlertaDAO(mysqlService);
     List<LeituraSensor> leituras = [];
 
     if (response.statusCode == 200) {
@@ -28,12 +33,10 @@ class FirebaseService {
         final leitura = LeituraSensor.fromJson(value);
         final alerta = Alerta.fromLeitura(leitura);
 
-        // ✅ Envia leitura para MySQL
-        final idLeitura = await mysqlService.inserirLeitura(leitura);
+        final idLeitura = await leituraDao.inserir(leitura);
 
-        // ✅ Se houver alerta, insere também
         if (alerta.nivel != "Normal" && idLeitura != null) {
-          await mysqlService.inserirAlerta(alerta, idLeitura);
+          await alertaDao.inserir(alerta, idLeitura);
         }
 
         leituras.add(leitura);
@@ -47,7 +50,7 @@ class FirebaseService {
         }
       }
     } else {
-      print('❌ Erro ao buscar dados: ${response.statusCode}');
+      print('❌ Erro ao buscar dados do Firebase: ${response.statusCode}');
     }
 
     return leituras;

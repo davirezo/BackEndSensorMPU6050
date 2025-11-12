@@ -11,12 +11,14 @@
 Adafruit_MPU6050 mpu;
 
 // ======= CONFIGURAÇÕES DE WIFI =======
-#define WIFI_SSID "Joao Vitor"
-#define WIFI_PASSWORD "joao2806"
+#define WIFI_SSID "UNIFEOB LABORATORIOS"
+#define WIFI_PASSWORD "feob@lab"
 
 // ======= CONFIGURAÇÕES DO FIREBASE =======
-#define FIREBASE_PROJECT_URL "https://sensorvibracao-gp4-default-rtdb.firebaseio.com/"
-#define API_KEY "vpre3Zbzs3vmbTfr78YzckgIyqJBP1lnlU257O7g" // usando a mesma secret key para simplificar
+#define FIREBASE_PROJECT_URL "https://sensorvibracao-gp4-default-rtdb.firebaseio.com"
+#define API_KEY "AIzaSyDR_udQ5-a7uu1k23U_MGCio_cxQAPL4W0"  // 🔒 SUA API KEY REAL DO PROJETO
+#define USER_EMAIL "joao.v.moraes@sou.unifeob.edu.br"                   // 🔒 ADIÇÃO: conta criada no Firebase Auth
+#define USER_PASSWORD "senhasensor#"                         // 🔒 ADIÇÃO: senha da conta
 
 FirebaseData fbdo;
 FirebaseAuth auth;
@@ -48,13 +50,15 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   // ---- Configuração do Firebase ----
+  config.api_key = API_KEY;                       // 🔒 ADIÇÃO
   config.database_url = FIREBASE_PROJECT_URL;
-  config.signer.tokens.legacy_token = API_KEY; // usa token simples (modo teste)
+  auth.user.email = USER_EMAIL;                   // 🔒 ADIÇÃO
+  auth.user.password = USER_PASSWORD;             // 🔒 ADIÇÃO
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
 
-  Serial.println("✅ Firebase conectado!");
+  Serial.println("✅ Firebase conectado com autenticação segura!"); // 🔒 alterado texto
 
   // ---- Inicializar NTP ----
   timeClient.begin();
@@ -80,25 +84,19 @@ void loop() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  // Aceleração em m/s²
   float ax = a.acceleration.x * 9.80665;
   float ay = a.acceleration.y * 9.80665;
   float az = a.acceleration.z * 9.80665;
-
-  // Giroscópio em °/s
   float gx = g.gyro.x;
   float gy = g.gyro.y;
   float gz = g.gyro.z;
 
-  // Vibração
   float acc_total = sqrt(ax * ax + ay * ay + az * az);
   float vibracao = abs(acc_total - 9.80665);
 
-  // Exibir dados no Serial
   Serial.printf("Aceleração [m/s²] X: %.2f, Y: %.2f, Z: %.2f | Giroscópio [°/s] X: %.2f, Y: %.2f, Z: %.2f | Vibração: %.2f\n",
                 ax, ay, az, gx, gy, gz, vibracao);
 
-  // Piscar LED se vibração for crítica
   if (vibracao > 90.00 && !vibracaoCritica) {
     vibracaoCritica = true;
     ledTimer = millis();
@@ -123,7 +121,6 @@ void loop() {
     digitalWrite(ledPin, LOW);
   }
 
-  // ----- TIMESTAMP COMPLETO -----
   time_t rawTime = timeClient.getEpochTime();
   struct tm *timeInfo = localtime(&rawTime);
   char formattedTime[25];
@@ -132,10 +129,7 @@ void loop() {
   String timestamp = String(formattedTime);
   String path = "/leituras/" + String(millis());
 
-  // ----- Enviar ao Firebase -----
   FirebaseJson json;
-  json.set("id_maquina", 1);
-  json.set("id_sensor", 1);
   json.set("timestamp", timestamp);
   json.set("aceleracao/x", ax);
   json.set("aceleracao/y", ay);
@@ -145,7 +139,7 @@ void loop() {
   json.set("giroscopio/z", gz);
   json.set("vibracao", vibracao);
 
-  if (Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json)) {
+  if (Firebase.ready() && Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json)) {
     Serial.println("✅ Dados enviados ao Firebase!");
   } else {
     Serial.print("❌ Erro: ");

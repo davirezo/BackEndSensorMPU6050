@@ -1,4 +1,4 @@
-import 'package:firebase_to_dart/leitura_sensor.dart';
+import 'leitura_sensor.dart';
 
 class Alerta {
   final String nivel;
