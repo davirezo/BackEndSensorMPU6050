@@ -109,3 +109,6 @@ Aluno Eduardo: Dashboard BI e documentação
 Criar um aplicativo mobile para monitoramento em tempo real
 Implementar machine learning para prever falhas
 Integrar múltiplos dispositivos ESP32 em uma mesma planta industrial
+
+## 🔗 Acesso ao Repositório:
+https://github.com/davirezo/BackEndSensorMPU6050
