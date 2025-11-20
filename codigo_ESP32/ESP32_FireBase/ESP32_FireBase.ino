@@ -29,6 +29,8 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -3 * 3600, 60000);
 
 // ======= VARIÁVEIS DO SENSOR =======
+const int ID_SENSOR = 2;
+const int ID_MAQUINA = 2;
 const int ledPin = 13;
 bool vibracaoCritica = false;
 unsigned long ledTimer = 0;
@@ -130,6 +132,8 @@ void loop() {
   String path = "/leituras/" + String(millis());
 
   FirebaseJson json;
+  json.set("id_sensor", ID_SENSOR);
+  json.set("id_maquina", ID_MAQUINA);
   json.set("timestamp", timestamp);
   json.set("aceleracao/x", ax);
   json.set("aceleracao/y", ay);
